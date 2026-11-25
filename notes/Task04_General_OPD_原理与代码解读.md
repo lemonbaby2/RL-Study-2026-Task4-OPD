@@ -699,4 +699,4 @@ uv run python experiments/general-opd/02-demo-async.py \
 
 ---
 
-*笔记完成时间：2026-11-26 04:xx | 代码版本：agentic-rl-lab @ main（2026-11-26 clone）| 教程更新：2026-11-16*
+*笔记完成时间：2026-11-26 04:40 | 代码版本：agentic-rl-lab @ main（2026-11-26 clone）| 教程更新：2026-11-16*
