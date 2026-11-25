@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task4 · General OPD 原理与代码解读</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --panel:#ffffff; --ink:#1a1a1a; --ink2:#4a4a4a; --ink3:#767676;
+    --line:#e6e2dc; --accent:#b4451f; --accent-soft:#fdf1ec;
+    --teal:#1f6f6b; --teal-soft:#eef6f5; --amber:#8a6a12; --amber-soft:#fdf8e8;
+    --code-bg:#f6f4f0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    line-height:1.75; font-size:16px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:0 28px}
+
+  /* ---------- hero ---------- */
+  header{padding:76px 0 52px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:18px}
+  h1{font-size:40px;line-height:1.22;font-weight:700;letter-spacing:-.02em;margin-bottom:20px}
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{font-size:17.5px;color:var(--ink2);max-width:700px;line-height:1.8}
+  .meta{margin-top:28px;display:flex;flex-wrap:wrap;gap:10px}
+  .chip{font-size:12.5px;padding:5px 12px;border:1px solid var(--line);border-radius:100px;color:var(--ink3);background:var(--panel)}
+  .chip b{color:var(--ink);font-weight:600}
+
+  /* ---------- sections ---------- */
+  section{padding:60px 0;border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:none}
+  .num{font-size:12.5px;font-weight:600;color:var(--accent);letter-spacing:.1em;margin-bottom:12px}
+  h2{font-size:27px;font-weight:700;letter-spacing:-.015em;margin-bottom:10px}
+  .sub{color:var(--ink3);font-size:15px;margin-bottom:30px;max-width:720px}
+  h3{font-size:17px;font-weight:650;margin:32px 0 12px}
+  p{margin-bottom:14px;color:var(--ink2)}
+  p strong{color:var(--ink);font-weight:650}
+
+  /* ---------- table ---------- */
+  .tw{overflow-x:auto;margin:22px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:520px}
+  th{text-align:left;padding:13px 16px;font-weight:650;font-size:13px;letter-spacing:.02em;
+     color:var(--ink3);background:#f7f5f1;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:13px 16px;border-bottom:1px solid #f0ede8;color:var(--ink2);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tr.hl td{background:var(--accent-soft);color:var(--ink);font-weight:550}
+  tr.hl td:first-child{border-left:3px solid var(--accent)}
+  code{font-family:"SF Mono",Menlo,Consolas,"Cascadia Mono",monospace;font-size:13px;
+       background:var(--code-bg);padding:2px 6px;border-radius:4px;color:#7a3010}
+
+  /* ---------- formula ---------- */
+  .formula{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--teal);
+           border-radius:8px;padding:20px 22px;margin:18px 0;overflow-x:auto}
+  .formula .f{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:14px;line-height:2;color:var(--ink);white-space:pre}
+  .formula .note{font-size:13px;color:var(--ink3);margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+  .arrow{text-align:center;color:var(--ink3);font-size:13px;margin:6px 0;letter-spacing:.05em}
+
+  /* ---------- loop ---------- */
+  .loop{display:grid;gap:0;margin:26px 0}
+  .step{display:flex;gap:18px;padding:16px 0;border-bottom:1px dashed var(--line)}
+  .step:last-child{border-bottom:none}
+  .step .n{flex:0 0 34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;
+           display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:650}
+  .step .b{flex:1}
+  .step .b b{display:block;font-size:15px;color:var(--ink);margin-bottom:3px}
+  .step .b span{font-size:14px;color:var(--ink3)}
+  .step .b code{font-size:12.5px}
+
+  /* ---------- cards ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;margin:24px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:22px}
+  .card .tag{font-size:11.5px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;
+             color:var(--teal);margin-bottom:9px}
+  .card.warn .tag{color:var(--accent)}
+  .card h4{font-size:15.5px;font-weight:650;margin-bottom:8px}
+  .card p{font-size:14px;color:var(--ink3);margin:0;line-height:1.7}
+
+  /* ---------- quote ---------- */
+  blockquote{border-left:3px solid var(--amber);background:var(--amber-soft);border-radius:0 8px 8px 0;
+             padding:18px 22px;margin:24px 0;font-size:15.5px;color:#5a4712;line-height:1.8}
+  blockquote b{color:#3d3009}
+
+  /* ---------- list ---------- */
+  ul.clean{list-style:none;margin:18px 0}
+  ul.clean li{padding:11px 0 11px 28px;position:relative;border-bottom:1px solid #f2efea;font-size:14.5px;color:var(--ink2)}
+  ul.clean li:last-child{border-bottom:none}
+  ul.clean li::before{content:"→";position:absolute;left:0;color:var(--accent);font-weight:600}
+  ul.clean li b{color:var(--ink)}
+
+  /* ---------- links ---------- */
+  .links{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2px;margin:24px 0;
+         border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--line)}
+  .links a{display:block;padding:17px 20px;background:var(--panel);text-decoration:none;color:inherit;transition:background .15s}
+  .links a:hover{background:#faf8f4}
+  .links a b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:3px;font-weight:600}
+  .links a span{font-size:12.5px;color:var(--ink3);word-break:break-all}
+
+  footer{padding:44px 0 70px;color:var(--ink3);font-size:13px;line-height:1.9}
+  footer b{color:var(--ink2)}
+
+  @media(max-width:640px){
+    h1{font-size:29px} .wrap{padding:0 18px} header{padding:48px 0 36px}
+    section{padding:44px 0} h2{font-size:22px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Datawhale Agentic RL Lab · Task 4</div>
+    <h1>General OPD<br>让学生<em>在自己的轨迹上</em>学习</h1>
+    <p class="lede">
+      On-Policy Distillation 不是新算法，而是把 RL 训练循环里的 reward 换成了一个冻结 teacher 的 logprob ——
+      它把「设计奖励函数」这件最需要人肉判断的事，降级成了「调一次前向」。
+    </p>
+    <div class="meta">
+      <span class="chip">作者 <b>李梓鹏</b></span>
+      <span class="chip">完成 <b>2026-11-26</b></span>
+      <span class="chip">代码 <b>agentic-rl-lab @ main</b></span>
+      <span class="chip">教程更新 <b>2026-11-16</b></span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="num">01 / 定位</div>
+    <h2>两种失败模式，正好互补</h2>
+    <p class="sub">按「轨迹从哪来」和「信号密度」两个正交维度切开后训练方法，OPD 恰好填上那个空位。</p>
+
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th>方法</th><th>采样方式</th><th>奖励信号</th><th>每回合信息量</th><th>代表</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>SFT / 离线蒸馏</td><td>off-policy</td><td>密集</td><td>O(N) bit</td><td>Alpaca、OpenThoughts-3</td></tr>
+          <tr><td>RL（PPO / GRPO）</td><td>on-policy</td><td>稀疏</td><td><b>O(1) bit</b></td><td>PPO、GRPO、DAPO</td></tr>
+          <tr class="hl"><td>OPD</td><td>on-policy</td><td>密集</td><td><b>O(N) bit</b></td><td>GKD、MiniLLM、Tinker OPD</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="card warn">
+        <div class="tag">off-policy 的失败</div>
+        <h4>状态分布偏移</h4>
+        <p>学生学的是 teacher 常遇到的上下文，部署时走的却是自己的上下文。早期一个 teacher 从不犯的错，就让它漂出训练状态空间，误差按 O(εT²) 累积 —— 这就是 exposure bias（DAgger, 2010）。</p>
+      </div>
+      <div class="card warn">
+        <div class="tag">on-policy RL 的失败</div>
+        <h4>信号太稀</h4>
+        <p>512 token 的推理只拿到一个 reward=0。它知道"这条路错了"，但不知道错在哪一步：运算顺序？算术？读题？功劳分配无法完成。</p>
+      </div>
+      <div class="card">
+        <div class="tag">OPD 的解法</div>
+        <h4>on-policy + 密集</h4>
+        <p>保留 RL 的 on-policy 采样，把稀疏的 outcome reward 换成 teacher 的密集 token 级 logprob。等于老师坐在旁边给<b>你自己下的每一步棋</b>打分。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">02 / 推导</div>
+    <h2>从序列级 KL 到 token 级 advantage</h2>
+    <p class="sub">教程在这里跳步最多。下面把每一步补齐 —— 其中「链接法则拆 token」是整篇的技术枢纽。</p>
+
+    <div class="formula">
+      <div class="f">D_KL(π_θ ‖ π_T) = E<sub>y~π_θ</sub>[ log π_θ(y|x) − log π_T(y|x) ]</div>
+      <div class="note">期望采样自 π_θ —— 这就是 on-policy 的全部含义。取 π_T 就是前向 KL（mode-covering），那是 SFT 的目标。</div>
+    </div>
+
+    <div class="arrow">↓　链式法则 log π(y|x) = Σ<sub>t</sub> log π(y<sub>t</sub>|x,y<sub>&lt;t</sub>)，再交换期望与求和</div>
+
+    <div class="formula">
+      <div class="f">D_KL = Σ<sub>t</sub> E<sub>y~π_θ</sub>[ log π_θ(y<sub>t</sub>|x,y<sub>&lt;t</sub>) − log π_T(y<sub>t</sub>|x,y<sub>&lt;t</sub>) ]  ≜  Σ<sub>t</sub> E[ r<sub>t</sub><sup>KL</sup> ]</div>
+      <div class="note"><b>关键：</b>序列级 KL 变成 T 个 token 级项之和，每项只需要同一前序上下文下的两个 logprob。所以 teacher 只需<b>一次前向</b>，不必重新自回归生成 —— 这就是 OPD 比 RL 便宜的根本原因。</div>
+    </div>
+
+    <div class="arrow">↓　取负作为 advantage</div>
+
+    <div class="formula">
+      <div class="f">A<sub>t</sub> = −β · r<sub>t</sub><sup>KL</sup></div>
+      <div class="note">代码就两行：<code>reverse_kl = student_lps − teacher_lps</code> / <code>advantages = −β * reverse_kl</code></div>
+    </div>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>情形</th><th>含义</th><th>advantage</th><th>训练效果</th></tr></thead>
+        <tbody>
+          <tr><td><code>student_lp &gt; teacher_lp</code></td><td>学生比老师更偏爱这个 token（可能是坏习惯）</td><td>&lt; 0</td><td>压低该 token 概率 ✓</td></tr>
+          <tr><td><code>student_lp &lt; teacher_lp</code></td><td>老师更偏爱它（学生该学但没学到）</td><td>&gt; 0</td><td>提高该 token 概率 ✓</td></tr>
+          <tr><td>两者相等</td><td>学生已在该状态上与老师一致</td><td>0</td><td>不动</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>一个漂亮的等价关系</strong>：<code>OPD ≡ RL(reward_t := −β·r_t^KL)</code> —— 用 teacher 当逐 token 奖励模型的 RL。Thinking Machines 原文说得更直白：在已有的带 KL 正则的 RL 实现上，OPD 只是「把正则化所用的模型换掉」这一行的改动。</p>
+
+    <blockquote>
+      <b>⚠️ 最容易误判的一点</b>：单个 token 的 <code>r_t^KL</code> <b>可以为负</b>。它只是两个数相减，只有对 student 完整分布取期望后 KL 才保证非负。日志里看到 <code>reverse_kl_mean = −0.03</code>，不等于公式失效。
+    </blockquote>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">03 / 实现</div>
+    <h2>五个动作转圈</h2>
+    <p class="sub">对应 <code>01-demo-sync.py</code> 的主循环。第 ③ 步是 OPD 与「假 OPD」的分水岭。</p>
+
+    <div class="loop">
+      <div class="step">
+        <div class="n">1</div>
+        <div class="b"><b>刷新 sampler</b><span>严格 on-policy：用当前 student 权重采样。<code>sampler_refresh_steps=1</code> 最严格，调大就是引入 stale policy 偏差。</span></div>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <div class="b"><b>student 采样 completion</b><span>每个 prompt 生成 <code>group_size</code> 条，同时保存每个 token 的 <b>old logprob</b>（后面 importance sampling 要用）。</span></div>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <div class="b"><b>teacher 给同一条轨迹打分</b><span>拼 <code>prompt_ids + completion_ids</code> 送 <code>compute_logprobs</code>，<b>一次前向、不生成</b>，然后切掉 prompt 区间。这是心脏。</span></div>
+      </div>
+      <div class="step">
+        <div class="n">4</div>
+        <div class="b"><b>构造 reverse KL advantage</b><span><code>A_t = −β · (student_lp − teacher_lp)</code>，再把四个序列右移对齐成等长（<code>prompt_loss_len = P−1</code>，不是 P）。</span></div>
+      </div>
+      <div class="step">
+        <div class="n">5</div>
+        <div class="b"><b>importance_sampling 更新</b><span><code>forward_backward()</code> → <code>optim_step()</code>。用 <code>π_now/π_old</code> 比率修正批内参数漂移 —— 是工程方差控制，不是算法必需。</span></div>
+      </div>
+    </div>
+
+    <blockquote>
+      <b>为什么 ③ 是分水岭</b>：如果 teacher 自己重新生成一条答案再和 student 比，token 对不上、状态对不上，那就退回成了 off-policy 蒸馏，<b>不是</b> OPD。
+    </blockquote>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">04 / 工程</div>
+    <h2>七个陷阱：从「看起来能跑」到「真的学到了」</h2>
+    <p class="sub">这是我读代码时标出来的、最容易让人白跑一晚的那些坑。</p>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>#</th><th>陷阱</th><th>症状</th><th>修法</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><b>tokenizer 不兼容</b></td><td>KL 不降或乱跳</td><td>同系列模型（Qwen↔Qwen）；跨系列需 DSKD 式双空间投影</td></tr>
+          <tr><td>2</td><td><b>切片 off-by-one</b></td><td>KL 全程偏大，不明显</td><td>断言 <code>len(completion)==len(teacher_lps)</code></td></tr>
+          <tr><td>3</td><td><b>右移对齐错位</b></td><td>loss 抖、质量缓降</td><td>保持四序列等长断言</td></tr>
+          <tr><td>4</td><td><b><code>None</code> 被静默吞掉</b></td><td>KL 平稳但不降</td><td>显式 <code>any(v is None)</code> 抛错</td></tr>
+          <tr><td>5</td><td><b>stale policy</b></td><td>KL 先降后升</td><td>严格 OPD 设 <code>refresh=1</code></td></tr>
+          <tr><td>6</td><td><b>把 <code>group_size</code> 当 GRPO 的组</b></td><td>写了组内归一化，信号变味</td><td>OPD 里每条 completion <b>独立</b>监督，<b>没有 baseline</b></td></tr>
+          <tr><td>7</td><td><b>单 token KL 为负就回滚</b></td><td>反复改超参</td><td>看多 step 趋势 + 长度 + 方差</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>第 6 条最容易概念混淆</strong>：GRPO 的 <code>group_size</code> 条回答要互相比较算组内相对优势 <code>A_i=(r_i−mean)/std</code>；OPD 的 <code>group_size</code> 只是「同 prompt 多采几条 on-policy 轨迹」，彼此完全不比较。搞混会写出完全错误的代码。</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">05 / 批判</div>
+    <h2>OPD 不是银弹</h2>
+    <p class="sub">读完 2026 年的腾讯 OPD 综述与 Rethinking 论文，补上教程没强调的四个边界。</p>
+
+    <div class="grid">
+      <div class="card warn"><div class="tag">失效模式 ①</div><h4>多样性坍缩</h4><p>反向 KL 是 mode-seeking，天然收缩到单一主峰，学生输出会变得高度同质。</p></div>
+      <div class="card warn"><div class="tag">失效模式 ②</div><h4>错误前缀陷阱</h4><p>学生一开头就错，teacher 在被污染的前缀上也可能给出误导性偏好，后续「纠正」已无意义。</p></div>
+      <div class="card warn"><div class="tag">失效模式 ③</div><h4>自博弈饱和</h4><p>teacher-free 的自蒸馏变体缺少外部新增信息，收益很快见顶。</p></div>
+      <div class="card warn"><div class="tag">失效模式 ④</div><h4>校准-能力差距</h4><p>KL 很低但正确率不涨：学到的是「风格与自信度」，不是「事实准确性」。这正是 off-policy 蒸馏老问题在 OPD 里的回声。</p></div>
+    </div>
+
+    <h3>OPD 有效的两个必要条件</h3>
+    <ul class="clean">
+      <li><b>师生推理模式兼容</b> —— 思维链风格差异过大时，teacher 在 student 轨迹上给不出有意义的偏好。</li>
+      <li><b>teacher 提供真正的新增能力</b> —— 如果它只是「同能力的更自信版本」，学生只能学到自信。</li>
+    </ul>
+
+    <h3>成本要算清</h3>
+    <div class="tw">
+      <table>
+        <thead><tr><th>方法</th><th>AIME'24</th><th>GPU 小时</th><th>相对成本</th></tr></thead>
+        <tbody>
+          <tr><td>异策略蒸馏（SFT）</td><td>55.0%</td><td>未报告</td><td>基准（OPD 约为其 <b>4–5 倍</b>算力）</td></tr>
+          <tr><td>RL</td><td>67.6%</td><td>17,920</td><td>~10× OPD</td></tr>
+          <tr class="hl"><td>OPD</td><td><b>74.4%</b></td><td><b>1,800</b></td><td>最高性价比</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px;color:var(--ink3)">数据来源：Qwen3 Technical Report, Table 21（经 Thinking Machines 博文转载）</p>
+
+    <blockquote>
+      <b>正确定位</b>：有强 teacher、又烧不起 RL 时，OPD 性价比最高。反之——如果你没有合适 teacher，或任务本身有干净的环境 reward，OPD 未必划算。
+    </blockquote>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">06 / 交付</div>
+    <h2>资源与入口</h2>
+    <p class="sub">本次一并整理了本机全部 RL 资源，并补齐了缺的三块：数学推导层、动手实践层、LLM-RL 主线。</p>
+
+    <div class="links">
+      <a href="notes/Task04_General_OPD_原理与代码解读.md"><b>完整笔记</b><span>原理推导 · 13 函数精读 · 7 陷阱 · 8 道自测题</span></a>
+      <a href="notes/Task04_打卡正文_可直接粘贴版.md"><b>打卡精简版</b><span>可直接粘贴到飞书表单</span></a>
+      <a href="notes/本机强化学习资源盘点_2026-11-26.md"><b>本机资源盘点</b><span>知识点 → 本地路径映射表</span></a>
+      <a href="repo/experiments/"><b>agentic-rl-lab 代码</b><span>18 个实验：grpo / dapo / gspo / general-opd / opsd …</span></a>
+      <a href="课件/强化学习的数学原理_赵世钰_全本.pdf"><b>强化学习的数学原理</b><span>赵世钰 · 西湖大学 · 19MB 全本</span></a>
+      <a href="课件/动手学强化学习_notebooks/"><b>动手学强化学习</b><span>上海交大 · 21 章 notebook</span></a>
+      <a href="课件/论文/"><b>原始论文 4 篇</b><span>GKD · MiniLLM · OPD 综述(2026) · Rethinking(2026)</span></a>
+      <a href="https://datawhalechina.github.io/agentic-rl-lab/experiments/general-opd/"><b>Task4 官方教程 ↗</b><span>datawhalechina.github.io</span></a>
+    </div>
+
+    <h3>一条命令跑通 OPD</h3>
+    <div class="formula">
+      <div class="f">cd repo &amp;&amp; uv sync &amp;&amp; trio login
+
+uv run python experiments/general-opd/01-demo-sync.py \
+  --steps 1 --batch-size 1 --group-size 1 \
+  --max-tokens 128 --sample-size 20 --swanlab-mode disabled</div>
+      <div class="note">本地<b>不需要 GPU</b> —— <code>torch</code> 走 <code>pytorch-cpu</code> 索引，训练与采样由远程 PyTRIO 执行。看到 <code>Saved weights: &lt;path&gt;</code> 才算全链路通。</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><b>版权声明</b>：本仓库不拥有任何第三方课件的版权，仅做学习目的的本地归档与索引。EasyRL 蘑菇书（CC BY-NC-SA 4.0）、动手学强化学习、强化学习的数学原理、agentic-rl-lab 及各论文版权均归原作者所有。</p>
+    <p style="margin-top:10px">本仓库原创部分（三份笔记、本页面、脚本）采用 <b>CC BY-NC-SA 4.0</b>，转载请注明出处。</p>
+    <p style="margin-top:18px;color:#9a9a9a">李梓鹏 · 2026-11-26 · 代码版本 agentic-rl-lab @ main</p>
+  </div>
+</footer>
+
+</body>
+</html>
